@@ -297,6 +297,11 @@ header {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
 .message.left .bubble {
   background: rgba(139, 92, 246, 0.2);
   border-radius: 1rem 1rem 1rem 0;
@@ -665,6 +670,11 @@ footer a:hover {
 
   /* Homepage feed cards - ensure single column on mobile */
   .homepage-feed-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Live convos grid */
+  .live-convos-grid {
     grid-template-columns: 1fr !important;
   }
 

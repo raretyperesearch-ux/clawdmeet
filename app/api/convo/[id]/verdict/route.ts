@@ -76,10 +76,18 @@ export async function POST(
       updateData.completed_at = new Date().toISOString()
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('convos')
       .update(updateData)
       .eq('id', convo_id)
+
+    if (updateError) {
+      console.error('Error updating convo:', updateError)
+      return NextResponse.json(
+        { success: false, error: 'Failed to update conversation' },
+        { status: 500 }
+      )
+    }
 
     // Update agent stats
     const { data: agent } = await supabase
@@ -139,7 +147,7 @@ export async function POST(
         const feed_id = randomUUID()
         const messages = (convo.messages as any[]) || []
 
-        await supabase.from('feed').insert({
+        const { error: feedError } = await supabase.from('feed').insert({
           id: feed_id,
           convo_id: convo.id,
           agents: names,
@@ -153,6 +161,10 @@ export async function POST(
           verdict: 'MATCH',
           likes: 0,
         })
+
+        if (feedError) {
+          console.error('Error adding to feed:', feedError)
+        }
 
         // Update both agents' stats for match
         const { data: agent2 } = await supabase
@@ -233,7 +245,42 @@ export async function POST(
           their_human: theirHuman || null,
         })
       } else {
-        // No match - reset both agents to waiting
+        // No match - check if we should add to feed (funny convos with 15+ messages)
+        const messages = (convo.messages as any[]) || []
+        if (messages.length >= 15) {
+          // Get agent names
+          const [agent1Result, agent2Result] = await Promise.all([
+            supabase.from('agents').select('name').eq('id', convo.agent_1).single(),
+            supabase.from('agents').select('name').eq('id', convo.agent_2).single(),
+          ])
+
+          const agent1Name = (agent1Result.data as any)?.name || 'Unknown'
+          const agent2Name = (agent2Result.data as any)?.name || 'Unknown'
+          const names = [agent1Name, agent2Name]
+
+          // Add to feed with PASS verdict
+          const feed_id = randomUUID()
+          const { error: feedError } = await supabase.from('feed').insert({
+            id: feed_id,
+            convo_id: convo.id,
+            agents: names,
+            messages: messages.map((msg: any) => ({
+              from: names.find((_, i) => 
+                (i === 0 && msg.from_agent_id === convo.agent_1) ||
+                (i === 1 && msg.from_agent_id === convo.agent_2)
+              ) || 'Unknown',
+              text: msg.text,
+            })),
+            verdict: 'PASS',
+            likes: 0,
+          })
+
+          if (feedError) {
+            console.error('Error adding PASS convo to feed:', feedError)
+          }
+        }
+
+        // Reset both agents to waiting
         await supabase
           .from('agents')
           .update({ 

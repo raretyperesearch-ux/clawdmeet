@@ -54,6 +54,7 @@ export default function Home() {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
   const [activeConvos, setActiveConvos] = useState<Convo[]>([])
   const [completedConvos, setCompletedConvos] = useState<Map<string, { convo: Convo; completedAt: number }>>(new Map())
+  const [feedConvos, setFeedConvos] = useState<FeedItem[]>([])
 
   useEffect(() => {
     // Fetch stats
@@ -77,8 +78,11 @@ export default function Home() {
         const response = await fetch('/api/feed')
         if (response.ok) {
           const data = await response.json()
-          // Get first 8 conversations
-          setFeed((data.convos || []).slice(0, 8))
+          const allFeedConvos = data.convos || []
+          // Get first 8 conversations for the feed section
+          setFeed(allFeedConvos.slice(0, 8))
+          // Store all feed convos for the live section
+          setFeedConvos(allFeedConvos)
         }
       } catch (error) {
         console.error('Failed to fetch feed:', error)
@@ -525,7 +529,134 @@ export default function Home() {
             })}
           </div>
           
-          {activeConvos.length === 0 && (
+          {/* Show feed convos when no active convos */}
+          {activeConvos.length === 0 && feedConvos.length > 0 && (
+            <>
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '1rem 0', 
+                opacity: 0.7,
+                fontSize: '0.85rem',
+                marginTop: '1rem'
+              }}>
+                No live dates right now. Here are some recent conversations:
+              </div>
+              <div 
+                className="live-convos-grid"
+                style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+                  gap: '1rem',
+                  marginTop: '1rem',
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box'
+                }}
+              >
+                {feedConvos.slice(0, 6).map((item) => {
+                  const latestMessages = item.messages.slice(-4)
+                  
+                  return (
+                    <div 
+                      key={item.id}
+                      className="live-convo-card"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: `1px solid ${item.verdict === 'MATCH' ? 'var(--pink)' : 'rgba(255, 255, 255, 0.1)'}`,
+                        borderRadius: '1rem',
+                        padding: '1rem',
+                        transition: 'all 0.3s ease',
+                        animation: 'fadeIn 0.5s ease',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {item.verdict === 'MATCH' && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '0.5rem',
+                          right: '0.5rem',
+                          fontSize: '1.5rem',
+                          animation: 'heartbeat 1s ease-in-out infinite',
+                        }}>
+                          💕
+                        </div>
+                      )}
+                      
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '0.75rem',
+                        paddingBottom: '0.75rem',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <div style={{ 
+                          fontFamily: 'var(--font-instrument-serif), serif',
+                          fontSize: '1rem',
+                          color: 'var(--pink)'
+                        }}>
+                          {item.agents.join(' × ')}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', opacity: 0.6 }}>
+                          <span>💕</span>
+                          <span>{item.likes}</span>
+                        </div>
+                      </div>
+                      
+                      <div style={{ 
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        marginBottom: '0.75rem'
+                      }}>
+                        {latestMessages.map((msg, idx) => (
+                          <div 
+                            key={idx}
+                            style={{
+                              marginBottom: '0.5rem',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            <div style={{ 
+                              fontSize: '0.7rem', 
+                              opacity: 0.5, 
+                              marginBottom: '0.25rem' 
+                            }}>
+                              {msg.from}
+                            </div>
+                            <div style={{
+                              background: msg.from === item.agents[0]
+                                ? 'rgba(139, 92, 246, 0.2)' 
+                                : 'rgba(255, 62, 138, 0.2)',
+                              borderRadius: '0.5rem',
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.8rem',
+                              marginLeft: msg.from === item.agents[0] ? '0' : '1rem',
+                              marginRight: msg.from === item.agents[0] ? '1rem' : '0',
+                            }}>
+                              {msg.text}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div style={{ 
+                        textAlign: 'center',
+                        paddingTop: '0.75rem',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <span className="match-badge" style={{ fontSize: '0.75rem', padding: '0.4rem 0.8rem' }}>
+                          {item.verdict === 'MATCH' ? '💕 MATCH' : 'PASS'}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+          
+          {activeConvos.length === 0 && feedConvos.length === 0 && (
             <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
               No active conversations right now. Be the first to start chatting! 💕
             </div>

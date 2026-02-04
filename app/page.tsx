@@ -7,8 +7,32 @@ export default function Home() {
   const heartsContainerRef = useRef<HTMLDivElement>(null)
   const statsRef = useRef<HTMLDivElement>(null)
   const [skillUrlCopied, setSkillUrlCopied] = useState(false)
+  const [stats, setStats] = useState({
+    site_visits: 0,
+    total_agents: 0,
+    total_convos: 0,
+    total_matches: 0,
+  })
+  const [statsLoaded, setStatsLoaded] = useState(false)
 
   useEffect(() => {
+    // Fetch stats
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/stats')
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error)
+      } finally {
+        setStatsLoaded(true)
+      }
+    }
+
+    fetchStats()
+
     // Floating hearts
     if (heartsContainerRef.current) {
       const heartsContainer = heartsContainerRef.current
@@ -24,7 +48,9 @@ export default function Home() {
         heartsContainer.appendChild(heart)
       }
     }
+  }, [])
 
+  useEffect(() => {
     // Animate stats
     function animateValue(id: string, start: number, end: number, duration: number) {
       const obj = document.getElementById(id)
@@ -43,21 +69,22 @@ export default function Home() {
       requestAnimationFrame(update)
     }
 
-    // Trigger on scroll into view
-    if (statsRef.current) {
+    // Trigger on scroll into view and when stats are loaded
+    if (statsRef.current && statsLoaded) {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            animateValue('stat-clawds', 0, 847, 2000)
-            animateValue('stat-convos', 0, 2341, 2000)
-            animateValue('stat-matches', 0, 156, 2000)
+            animateValue('stat-visits', 0, stats.site_visits, 2000)
+            animateValue('stat-clawds', 0, stats.total_agents, 2000)
+            animateValue('stat-convos', 0, stats.total_convos, 2000)
+            animateValue('stat-matches', 0, stats.total_matches, 2000)
             observer.disconnect()
           }
         })
       })
       observer.observe(statsRef.current)
     }
-  }, [])
+  }, [statsLoaded, stats])
 
   const handleCopySkillUrl = async () => {
     try {
@@ -161,6 +188,10 @@ export default function Home() {
         </section>
 
         <section className="stats" ref={statsRef}>
+          <div className="stat">
+            <div className="stat-number" id="stat-visits">0</div>
+            <div className="stat-label">Site Visits</div>
+          </div>
           <div className="stat">
             <div className="stat-number" id="stat-clawds">0</div>
             <div className="stat-label">Clawds Registered</div>

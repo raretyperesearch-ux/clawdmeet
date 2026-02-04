@@ -2,6 +2,8 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 interface Message {
   from: string
   text: string
@@ -18,74 +20,118 @@ interface ConvoData {
 }
 
 async function getConvo(id: string): Promise<ConvoData | null> {
+  if (!id || typeof id !== 'string') {
+    console.error('Invalid convo ID:', id)
+    return null
+  }
+
   try {
     // Get conversation from feed (public conversations)
-    const { data: feedItem } = await supabase
-      .from('feed')
-      .select('*')
-      .eq('convo_id', id)
-      .single()
+    try {
+      const { data: feedItem, error: feedError } = await supabase
+        .from('feed')
+        .select('*')
+        .eq('convo_id', id)
+        .single()
 
-    if (feedItem) {
-      // Return feed data
-      return {
-        convo_id: feedItem.convo_id,
-        agents: feedItem.agents || [],
-        messages: feedItem.messages || [],
-        verdict: feedItem.verdict,
-        likes: feedItem.likes || 0,
-        timestamp: feedItem.created_at,
+      if (feedError && feedError.code !== 'PGRST116') {
+        // PGRST116 is "not found" which is expected, log other errors
+        console.error('Feed query error:', feedError)
       }
+
+      if (feedItem) {
+        // Return feed data with validation
+        const messages = (feedItem.messages as any[]) || []
+        const agents = feedItem.agents || []
+        
+        return {
+          convo_id: feedItem.convo_id || id,
+          agents: Array.isArray(agents) ? agents : [],
+          messages: Array.isArray(messages) ? messages : [],
+          verdict: feedItem.verdict || 'PASS',
+          likes: feedItem.likes || 0,
+          timestamp: feedItem.created_at || new Date().toISOString(),
+        }
+      }
+    } catch (feedErr) {
+      console.error('Error fetching from feed:', feedErr)
+      // Continue to try convos table
     }
 
     // If not in feed, try to get from convos (for completed conversations)
-    const { data: convo } = await supabase
-      .from('convos')
-      .select('*')
-      .eq('id', id)
-      .single()
+    try {
+      const { data: convo, error: convoError } = await supabase
+        .from('convos')
+        .select('*')
+        .eq('id', id)
+        .single()
 
-    if (!convo) {
+      if (convoError) {
+        if (convoError.code === 'PGRST116') {
+          // Not found - this is expected for some cases
+          console.log('Convo not found in database:', id)
+        } else {
+          console.error('Convo query error:', convoError)
+        }
+        return null
+      }
+
+      if (!convo) {
+        console.log('Convo is null for ID:', id)
+        return null
+      }
+
+      // Only show completed conversations publicly
+      if (convo.status !== 'complete') {
+        console.log('Convo not complete, status:', convo.status)
+        return null
+      }
+
+      // Get agent names
+      let agentNames = ['Unknown', 'Unknown']
+      try {
+        const [agent1Result, agent2Result] = await Promise.all([
+          supabase.from('agents').select('name').eq('id', convo.agent_1).single(),
+          supabase.from('agents').select('name').eq('id', convo.agent_2).single(),
+        ])
+
+        agentNames = [
+          (agent1Result.data as any)?.name || 'Unknown',
+          (agent2Result.data as any)?.name || 'Unknown',
+        ]
+      } catch (agentErr) {
+        console.error('Error fetching agent names:', agentErr)
+        // Use defaults already set
+      }
+
+      const messages = (convo.messages as any[]) || []
+      
+      // Format messages with agent names
+      const formattedMessages = Array.isArray(messages) 
+        ? messages.map((msg: any) => ({
+            from: msg.from_agent_id === convo.agent_1 ? agentNames[0] : agentNames[1],
+            text: msg.text || '',
+            timestamp: msg.timestamp,
+          }))
+        : []
+
+      // Determine verdict
+      let verdict = 'PASS'
+      if (convo.verdict_1 === 'MATCH' && convo.verdict_2 === 'MATCH') {
+        verdict = 'MATCH'
+      }
+
+      return {
+        convo_id: convo.id,
+        agents: agentNames,
+        messages: formattedMessages,
+        verdict,
+        likes: 0,
+        timestamp: convo.completed_at || convo.created_at || new Date().toISOString(),
+      }
+    } catch (convoErr) {
+      console.error('Error fetching from convos:', convoErr)
       return null
-    }
-
-    // Only show completed conversations publicly
-    if (convo.status !== 'complete') {
-      return null
-    }
-
-    // Get agent names
-    const [agent1, agent2] = await Promise.all([
-      supabase.from('agents').select('name').eq('id', convo.agent_1).single(),
-      supabase.from('agents').select('name').eq('id', convo.agent_2).single(),
-    ])
-
-    const messages = (convo.messages as any[]) || []
-    const agentNames = [
-      (agent1.data as any)?.name || 'Unknown',
-      (agent2.data as any)?.name || 'Unknown',
-    ]
-
-    // Format messages with agent names
-    const formattedMessages = messages.map((msg: any) => ({
-      from: msg.from_agent_id === convo.agent_1 ? agentNames[0] : agentNames[1],
-      text: msg.text,
-      timestamp: msg.timestamp,
-    }))
-
-    // Determine verdict
-    let verdict = 'PASS'
-    if (convo.verdict_1 === 'MATCH' && convo.verdict_2 === 'MATCH') {
-      verdict = 'MATCH'
-    }
-
-    return {
-      convo_id: convo.id,
-      agents: agentNames,
-      messages: formattedMessages,
-      verdict,
-      likes: 0,
-      timestamp: convo.completed_at || convo.created_at,
     }
   } catch (error) {
     console.error('Failed to fetch convo:', error)
@@ -93,8 +139,9 @@ async function getConvo(id: string): Promise<ConvoData | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const convo = await getConvo(params.id)
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> | { id: string } }): Promise<Metadata> {
+  const resolvedParams = await Promise.resolve(params)
+  const convo = await getConvo(resolvedParams.id)
   
   if (!convo) {
     return {
@@ -107,7 +154,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const firstMessage = convo.messages[0]?.text || 'Two bots had a conversation'
   const preview = firstMessage.length > 100 ? firstMessage.substring(0, 100) + '...' : firstMessage
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://clawdmeet.vercel.app'
-  const convoUrl = `${siteUrl}/convo/${params.id}`
+  const convoUrl = `${siteUrl}/convo/${resolvedParams.id}`
 
   return {
     title: `${agent1} & ${agent2} on ClawdMeet`,
@@ -136,8 +183,30 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default async function ConvoPage({ params }: { params: { id: string } }) {
-  const convo = await getConvo(params.id)
+export default async function ConvoPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  const resolvedParams = await Promise.resolve(params)
+  const convoId = resolvedParams.id
+
+  if (!convoId) {
+    return (
+      <>
+        <div className="bg-gradient"></div>
+        <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '2rem', marginBottom: '1rem' }}>
+            Invalid Conversation ID
+          </h1>
+          <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
+            The conversation ID is missing or invalid.
+          </p>
+          <Link href="/feed" style={{ color: 'var(--pink)', textDecoration: 'none' }}>
+            ← Back to Feed
+          </Link>
+        </div>
+      </>
+    )
+  }
+
+  const convo = await getConvo(convoId)
 
   if (!convo) {
     return (
@@ -224,20 +293,33 @@ export default async function ConvoPage({ params }: { params: { id: string } }) 
               maxWidth: '600px',
             }}
           >
-            {convo.messages.map((msg, idx) => {
-              const isAgent1 = msg.from === agent1
-              return (
-                <div key={idx} className={`message ${isAgent1 ? 'left' : 'right'}`}>
-                  <div className="sender">{msg.from}</div>
-                  <div className="bubble">{msg.text}</div>
+            {convo.messages && convo.messages.length > 0 ? (
+              <>
+                {convo.messages.map((msg, idx) => {
+                  const isAgent1 = msg.from === agent1
+                  return (
+                    <div key={idx} className={`message ${isAgent1 ? 'left' : 'right'}`}>
+                      <div className="sender">{msg.from || 'Unknown'}</div>
+                      <div className="bubble">{msg.text || ''}</div>
+                    </div>
+                  )
+                })}
+                <div className="verdict" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                  <span className="match-badge">
+                    {convo.verdict === 'MATCH' ? '💕 IT\'S A MATCH' : 'PASS'}
+                  </span>
                 </div>
-              )
-            })}
-            <div className="verdict" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <span className="match-badge">
-                {convo.verdict === 'MATCH' ? '💕 IT\'S A MATCH' : 'PASS'}
-              </span>
-            </div>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
+                <p>No messages in this conversation yet.</p>
+                <div className="verdict" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                  <span className="match-badge">
+                    {convo.verdict === 'MATCH' ? '💕 IT\'S A MATCH' : 'PASS'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 

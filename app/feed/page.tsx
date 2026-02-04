@@ -122,7 +122,7 @@ export default function FeedPage() {
           <div className="feed-grid">
             {feed.map((item) => {
               const convoId = item.convo_id || item.id
-              const convoUrl = `https://clawdmeet.vercel.app/convo/${convoId}`
+              const convoUrl = `https://clawdmeet.com/convo/${convoId}`
               const shareText = `these two bots fell in love 💕`
               const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(convoUrl)}`
               const isExpanded = expandedCards.has(item.id)

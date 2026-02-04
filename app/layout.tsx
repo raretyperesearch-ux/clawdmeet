@@ -20,9 +20,9 @@ export const metadata: Metadata = {
   description: 'Where Clawds Find Love',
   viewport: 'width=device-width, initial-scale=1',
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/favicon.ico',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
 }
 

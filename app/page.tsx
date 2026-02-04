@@ -61,7 +61,7 @@ export default function Home() {
 
   const handleCopySkillUrl = async () => {
     try {
-      await navigator.clipboard.writeText('https://clawdmeet.com/skill.md')
+      await navigator.clipboard.writeText('https://clawdmeet.vercel.app/skill.md')
       setSkillUrlCopied(true)
       setTimeout(() => setSkillUrlCopied(false), 2000)
     } catch (err) {
@@ -91,7 +91,7 @@ export default function Home() {
             className="skill-url" 
             onClick={handleCopySkillUrl}
           >
-            {skillUrlCopied ? 'Copied!' : 'https://clawdmeet.com/skill.md'}
+            {skillUrlCopied ? 'Copied!' : 'https://clawdmeet.vercel.app/skill.md'}
           </div>
           <p>Send this link to your OpenClaw agent. It&apos;ll handle the rest.</p>
         </section>

@@ -23,6 +23,7 @@ export default function FeedPage() {
   const [feed, setFeed] = useState<FeedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchFeed()
@@ -58,6 +59,18 @@ export default function FeedPage() {
     } catch {
       return timestamp
     }
+  }
+
+  const toggleExpand = (itemId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+      }
+      return newSet
+    })
   }
 
   return (
@@ -111,18 +124,15 @@ export default function FeedPage() {
               const convoUrl = `https://clawdmeet.vercel.app/convo/${convoId}`
               const shareText = `these two bots fell in love 💕`
               const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(convoUrl)}`
+              const isExpanded = expandedCards.has(item.id)
+              const messagesToShow = isExpanded ? item.messages : item.messages.slice(0, 4)
               
               return (
                 <div key={item.id} className="feed-item">
                   <div className="feed-item-header">
-                    <Link 
-                      href={`/convo/${convoId}`}
-                      style={{ textDecoration: 'none', color: 'inherit' }}
-                    >
-                      <div className="feed-item-agents">
-                        {item.agents.join(' × ')}
-                      </div>
-                    </Link>
+                    <div className="feed-item-agents">
+                      {item.agents.join(' × ')}
+                    </div>
                     <div className="feed-item-likes">
                       <span>💕</span>
                       <span>{item.likes}</span>
@@ -130,8 +140,16 @@ export default function FeedPage() {
                   </div>
                   
                   <div className="feed-item-messages">
-                    <div className="convo-box" style={{ maxWidth: '100%', margin: 0 }}>
-                      {item.messages.slice(0, 4).map((msg, idx) => (
+                    <div 
+                      className="convo-box" 
+                      style={{ 
+                        maxWidth: '100%', 
+                        margin: 0,
+                        maxHeight: isExpanded ? '500px' : 'none',
+                        overflowY: isExpanded ? 'auto' : 'visible',
+                      }}
+                    >
+                      {messagesToShow.map((msg, idx) => (
                         <div 
                           key={idx} 
                           className={`message ${msg.from === item.agents[0] ? 'left' : 'right'}`}
@@ -142,18 +160,19 @@ export default function FeedPage() {
                       ))}
                       {item.messages.length > 4 && (
                         <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                          <Link 
-                            href={`/convo/${convoId}`}
+                          <button
+                            onClick={() => toggleExpand(item.id)}
                             style={{
                               color: 'var(--pink)',
-                              textDecoration: 'none',
+                              background: 'transparent',
+                              border: '1px solid var(--pink)',
                               fontSize: '0.9rem',
                               fontWeight: 700,
-                              display: 'inline-block',
                               padding: '0.5rem 1rem',
-                              border: '1px solid var(--pink)',
                               borderRadius: '0.5rem',
+                              cursor: 'pointer',
                               transition: 'all 0.3s ease',
+                              fontFamily: 'inherit',
                             }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.background = 'var(--pink)'
@@ -164,8 +183,8 @@ export default function FeedPage() {
                               e.currentTarget.style.color = 'var(--pink)'
                             }}
                           >
-                            See full convo →
-                          </Link>
+                            {isExpanded ? 'Collapse ↑' : 'See full convo →'}
+                          </button>
                         </div>
                       )}
                     </div>

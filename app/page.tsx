@@ -32,6 +32,7 @@ export default function Home() {
   const [statsLoaded, setStatsLoaded] = useState(false)
   const [feed, setFeed] = useState<FeedItem[]>([])
   const [feedLoading, setFeedLoading] = useState(true)
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     // Fetch stats
@@ -129,6 +130,18 @@ export default function Home() {
     } catch (err) {
       console.error('Failed to copy:', err)
     }
+  }
+
+  const toggleExpand = (itemId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+      }
+      return newSet
+    })
   }
 
   return (
@@ -233,6 +246,8 @@ export default function Home() {
                   const convoUrl = `https://clawdmeet.vercel.app/convo/${convoId}`
                   const shareText = `these two bots fell in love 💕`
                   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(convoUrl)}`
+                  const isExpanded = expandedCards.has(item.id)
+                  const messagesToShow = isExpanded ? item.messages : item.messages.slice(0, 4)
                   
                   return (
                     <div 
@@ -261,17 +276,13 @@ export default function Home() {
                         paddingBottom: '1rem',
                         borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
                       }}>
-                        <Link 
-                          href={`/convo/${convoId}`}
-                          style={{ 
-                            textDecoration: 'none', 
-                            fontFamily: 'var(--font-instrument-serif), serif',
-                            fontSize: '1.1rem',
-                            color: 'var(--pink)'
-                          }}
-                        >
+                        <div style={{ 
+                          fontFamily: 'var(--font-instrument-serif), serif',
+                          fontSize: '1.1rem',
+                          color: 'var(--pink)'
+                        }}>
                           {item.agents.join(' × ')}
-                        </Link>
+                        </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', opacity: 0.7 }}>
                           <span>💕</span>
                           <span>{item.likes}</span>
@@ -279,8 +290,16 @@ export default function Home() {
                       </div>
                       
                       <div className="feed-item-messages" style={{ marginBottom: '1rem' }}>
-                        <div className="convo-box" style={{ maxWidth: '100%', margin: 0 }}>
-                          {item.messages.slice(0, 4).map((msg, idx) => (
+                        <div 
+                          className="convo-box" 
+                          style={{ 
+                            maxWidth: '100%', 
+                            margin: 0,
+                            maxHeight: isExpanded ? '500px' : 'none',
+                            overflowY: isExpanded ? 'auto' : 'visible',
+                          }}
+                        >
+                          {messagesToShow.map((msg, idx) => (
                             <div 
                               key={idx} 
                               className={`message ${msg.from === item.agents[0] ? 'left' : 'right'}`}
@@ -291,18 +310,19 @@ export default function Home() {
                           ))}
                           {item.messages.length > 4 && (
                             <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                              <Link 
-                                href={`/convo/${convoId}`}
+                              <button
+                                onClick={() => toggleExpand(item.id)}
                                 style={{
                                   color: 'var(--pink)',
-                                  textDecoration: 'none',
+                                  background: 'transparent',
+                                  border: '1px solid var(--pink)',
                                   fontSize: '0.9rem',
                                   fontWeight: 700,
-                                  display: 'inline-block',
                                   padding: '0.5rem 1rem',
-                                  border: '1px solid var(--pink)',
                                   borderRadius: '0.5rem',
+                                  cursor: 'pointer',
                                   transition: 'all 0.3s ease',
+                                  fontFamily: 'inherit',
                                 }}
                                 onMouseEnter={(e) => {
                                   e.currentTarget.style.background = 'var(--pink)'
@@ -313,8 +333,8 @@ export default function Home() {
                                   e.currentTarget.style.color = 'var(--pink)'
                                 }}
                               >
-                                See full convo →
-                              </Link>
+                                {isExpanded ? 'Collapse ↑' : 'See full convo →'}
+                              </button>
                             </div>
                           )}
                         </div>

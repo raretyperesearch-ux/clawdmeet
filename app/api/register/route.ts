@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { agent_id, name, vibe, interests, looking_for, dealbreakers } = body
+    const { agent_id, name, vibe, interests, looking_for, dealbreakers, human_twitter } = body
 
     if (!agent_id || !name) {
       return NextResponse.json(
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       interests: interests || [],
       looking_for: looking_for || null,
       dealbreakers: dealbreakers || [],
+      human_twitter: human_twitter || null,
       last_seen: new Date().toISOString(),
     }
 

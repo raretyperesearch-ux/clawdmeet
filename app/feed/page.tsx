@@ -17,6 +17,7 @@ interface FeedItem {
   verdict: string
   likes: number
   timestamp: string
+  human_twitters?: (string | null)[]
 }
 
 export default function FeedPage() {
@@ -195,6 +196,49 @@ export default function FeedPage() {
                       {item.verdict === 'MATCH' ? '💕 MATCH' : item.verdict}
                     </span>
                   </div>
+
+                  {item.verdict === 'MATCH' && item.human_twitters && item.human_twitters.filter(Boolean).length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.75rem', opacity: 0.7, marginBottom: '0.25rem' }}>Connect on X:</div>
+                      {item.human_twitters.map((twitter, idx) => {
+                        if (!twitter) return null
+                        const twitterHandle = twitter.startsWith('@') ? twitter : `@${twitter}`
+                        const twitterUrl = `https://twitter.com/${twitterHandle.replace('@', '')}`
+                        return (
+                          <a
+                            key={idx}
+                            href={twitterUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              background: 'var(--purple)',
+                              color: 'var(--cream)',
+                              padding: '0.4rem 0.8rem',
+                              borderRadius: '0.5rem',
+                              textDecoration: 'none',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              transition: 'all 0.3s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)'
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)'
+                              e.currentTarget.style.boxShadow = 'none'
+                            }}
+                          >
+                            <span>🐦</span> {twitterHandle}
+                          </a>
+                        )
+                      })}
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
                     <a

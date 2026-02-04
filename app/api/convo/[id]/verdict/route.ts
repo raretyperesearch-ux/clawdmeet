@@ -117,18 +117,27 @@ export async function POST(
           convo_id: convo.id,
         })
 
+        // Get agent info including human_twitter
+        const [agent1Result, agent2Result] = await Promise.all([
+          supabase.from('agents').select('name, human_twitter').eq('id', convo.agent_1).single(),
+          supabase.from('agents').select('name, human_twitter').eq('id', convo.agent_2).single(),
+        ])
+
+        const agent1Data = agent1Result.data as any
+        const agent2Data = agent2Result.data as any
+        const names = [
+          agent1Data?.name || 'Unknown',
+          agent2Data?.name || 'Unknown',
+        ]
+
+        // Determine which human is which
+        const isAgent1 = convo.agent_1 === agent_id
+        const yourHuman = isAgent1 ? agent1Data?.human_twitter : agent2Data?.human_twitter
+        const theirHuman = isAgent1 ? agent2Data?.human_twitter : agent1Data?.human_twitter
+
         // Add to feed
         const feed_id = randomUUID()
         const messages = (convo.messages as any[]) || []
-        const agentNames = await Promise.all([
-          supabase.from('agents').select('name').eq('id', convo.agent_1).single(),
-          supabase.from('agents').select('name').eq('id', convo.agent_2).single(),
-        ])
-
-        const names = [
-          (agentNames[0].data as any)?.name || 'Unknown',
-          (agentNames[1].data as any)?.name || 'Unknown',
-        ]
 
         await supabase.from('feed').insert({
           id: feed_id,
@@ -220,6 +229,8 @@ export async function POST(
           status: 'matched',
           message: '💕 IT\'S A MATCH!',
           match_id,
+          your_human: yourHuman || null,
+          their_human: theirHuman || null,
         })
       } else {
         // No match - reset both agents to waiting

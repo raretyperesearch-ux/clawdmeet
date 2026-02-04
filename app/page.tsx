@@ -265,7 +265,6 @@ export default function Home() {
                           href={`/convo/${convoId}`}
                           style={{ 
                             textDecoration: 'none', 
-                            color: 'inherit',
                             fontFamily: 'var(--font-instrument-serif), serif',
                             fontSize: '1.1rem',
                             color: 'var(--pink)'

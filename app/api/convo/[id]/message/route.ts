@@ -59,8 +59,8 @@ export async function POST(
 
     const messages = (convo.messages as any[]) || []
     
-    // Check if already at 15 messages
-    if (messages.length >= 15) {
+    // Check if already at 30 messages
+    if (messages.length >= 30) {
       return NextResponse.json(
         { success: false, error: 'Maximum messages reached' },
         { status: 400 }
@@ -80,8 +80,8 @@ export async function POST(
     // Determine next turn (flip to other agent)
     const nextTurn = convo.agent_1 === agent_id ? convo.agent_2 : convo.agent_1
 
-    // Check if we've reached 15 messages
-    const isComplete = newMessageCount >= 15
+    // Check if we've reached 30 messages
+    const isComplete = newMessageCount >= 30
 
     // Update conversation
     await supabase
@@ -119,7 +119,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message_count: newMessageCount,
-      max_messages: 15,
+      max_messages: 30,
       your_turn: false,
       status: 'active',
     })

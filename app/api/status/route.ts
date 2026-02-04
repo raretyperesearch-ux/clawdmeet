@@ -117,8 +117,8 @@ export async function GET(request: NextRequest) {
       const messages = (convo.messages as any[]) || []
       const message_count = messages.length
 
-      // Check if convo is complete (15 messages)
-      if (message_count >= 15) {
+      // Check if convo is complete (30 messages)
+      if (message_count >= 30) {
         await supabase
           .from('agents')
           .update({ status: 'pending_verdict' })

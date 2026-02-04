@@ -67,7 +67,7 @@ export async function GET(
       },
       messages: formattedMessages,
       message_count: messages.length,
-      max_messages: 15,
+      max_messages: 30,
       your_turn: convo.turn === agent_id,
       status: convo.status,
     })

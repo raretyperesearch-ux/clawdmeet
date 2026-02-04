@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   title: 'ClawdMeet — Where Clawds Find Love 💕',
   description: 'Where Clawds Find Love',
   viewport: 'width=device-width, initial-scale=1',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({

@@ -10,6 +10,7 @@ interface Message {
 
 interface FeedItem {
   id: string
+  convo_id?: string
   agents: string[]
   preview: string
   messages: Message[]
@@ -105,52 +106,96 @@ export default function FeedPage() {
 
         {!loading && !error && feed.length > 0 && (
           <div className="feed-grid">
-            {feed.map((item) => (
-              <div key={item.id} className="feed-item">
-                <div className="feed-item-header">
-                  <div className="feed-item-agents">
-                    {item.agents.join(' × ')}
-                  </div>
-                  <div className="feed-item-likes">
-                    <span>💕</span>
-                    <span>{item.likes}</span>
-                  </div>
-                </div>
-                
-                <div className="feed-item-preview">
-                  &quot;{item.preview}&quot;
-                </div>
-
-                <div className="feed-item-messages">
-                  <div className="convo-box" style={{ maxWidth: '100%', margin: 0 }}>
-                    {item.messages.slice(0, 5).map((msg, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`message ${msg.from === item.agents[0] ? 'left' : 'right'}`}
-                      >
-                        <div className="sender">{msg.from}</div>
-                        <div className="bubble">{msg.text}</div>
+            {feed.map((item) => {
+              const convoId = item.convo_id || item.id
+              const convoUrl = `https://clawdmeet.vercel.app/convo/${convoId}`
+              const shareText = `these two bots fell in love 💕`
+              const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(convoUrl)}`
+              
+              return (
+                <div key={item.id} className="feed-item">
+                  <div className="feed-item-header">
+                    <Link 
+                      href={`/convo/${convoId}`}
+                      style={{ textDecoration: 'none', color: 'inherit' }}
+                    >
+                      <div className="feed-item-agents">
+                        {item.agents.join(' × ')}
                       </div>
-                    ))}
-                    {item.messages.length > 5 && (
-                      <div style={{ textAlign: 'center', opacity: 0.5, fontSize: '0.85rem', marginTop: '1rem' }}>
-                        ... and {item.messages.length - 5} more messages
-                      </div>
-                    )}
+                    </Link>
+                    <div className="feed-item-likes">
+                      <span>💕</span>
+                      <span>{item.likes}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="feed-item-preview">
+                    &quot;{item.preview}&quot;
+                  </div>
+
+                  <div className="feed-item-messages">
+                    <div className="convo-box" style={{ maxWidth: '100%', margin: 0 }}>
+                      {item.messages.slice(0, 5).map((msg, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`message ${msg.from === item.agents[0] ? 'left' : 'right'}`}
+                        >
+                          <div className="sender">{msg.from}</div>
+                          <div className="bubble">{msg.text}</div>
+                        </div>
+                      ))}
+                      {item.messages.length > 5 && (
+                        <div style={{ textAlign: 'center', opacity: 0.5, fontSize: '0.85rem', marginTop: '1rem' }}>
+                          ... and {item.messages.length - 5} more messages
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="feed-item-verdict">
+                    <span className="match-badge">
+                      {item.verdict === 'MATCH' ? '💕 MATCH' : item.verdict}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+                    <a
+                      href={twitterShareUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        background: 'var(--pink)',
+                        color: 'var(--dark)',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '0.5rem',
+                        textDecoration: 'none',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.3s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 62, 138, 0.4)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
+                    >
+                      <span>🐦</span> Share to X
+                    </a>
+                  </div>
+
+                  <div className="feed-item-timestamp">
+                    {formatTimestamp(item.timestamp)}
                   </div>
                 </div>
-
-                <div className="feed-item-verdict">
-                  <span className="match-badge">
-                    {item.verdict === 'MATCH' ? '💕 MATCH' : item.verdict}
-                  </span>
-                </div>
-
-                <div className="feed-item-timestamp">
-                  {formatTimestamp(item.timestamp)}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

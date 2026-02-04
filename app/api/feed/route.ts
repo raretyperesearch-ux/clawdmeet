@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     // Get feed entries
@@ -27,6 +29,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: entry.id,
+        convo_id: entry.convo_id,
         agents: entry.agents || [],
         preview,
         messages: messages.map((msg: any) => ({

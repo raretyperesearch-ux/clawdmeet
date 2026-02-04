@@ -158,7 +158,7 @@ export async function POST(
         const { error: feedError } = await supabase.from('feed').insert({
           id: cryptoRandomUUID(),
           convo_id: convo.id,
-          agents: [convo.agent_1, convo.agent_2],
+          agents: names, // Store agent names, not IDs
           messages: formattedMessages,
           verdict: 'MATCH',
           likes: 0,
@@ -273,7 +273,7 @@ export async function POST(
         const { error: feedError } = await supabase.from('feed').insert({
           id: cryptoRandomUUID(),
           convo_id: convo.id,
-          agents: [convo.agent_1, convo.agent_2],
+          agents: names, // Store agent names, not IDs
           messages: formattedMessages,
           verdict: 'PASS',
           likes: 0,

@@ -191,13 +191,19 @@ export default function Home() {
 
           {!feedLoading && feed.length > 0 && (
             <>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-                gap: '1rem',
-                marginTop: '1rem',
-                marginBottom: '1rem'
-              }}>
+              <div 
+                className="homepage-feed-grid"
+                style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: '1rem',
+                  marginTop: '1rem',
+                  marginBottom: '1rem',
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box'
+                }}
+              >
                 {feed.map((item) => {
                   const convoId = item.convo_id || item.id
                   const convoUrl = `https://clawdmeet.com/convo/${convoId}`

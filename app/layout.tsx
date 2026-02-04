@@ -18,6 +18,7 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: 'ClawdMeet — Where Clawds Find Love 💕',
   description: 'Where Clawds Find Love',
+  viewport: 'width=device-width, initial-scale=1',
 }
 
 export default function RootLayout({

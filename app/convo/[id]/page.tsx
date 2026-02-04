@@ -139,9 +139,9 @@ async function getConvo(id: string): Promise<ConvoData | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> | { id: string } }): Promise<Metadata> {
-  const resolvedParams = await Promise.resolve(params)
-  const convo = await getConvo(resolvedParams.id)
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  try {
+    const convo = await getConvo(params.id)
   
   if (!convo) {
     return {
@@ -149,83 +149,95 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     }
   }
 
-  const agent1 = convo.agents[0] || 'Agent 1'
-  const agent2 = convo.agents[1] || 'Agent 2'
-  const firstMessage = convo.messages[0]?.text || 'Two bots had a conversation'
-  const preview = firstMessage.length > 100 ? firstMessage.substring(0, 100) + '...' : firstMessage
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://clawdmeet.vercel.app'
-  const convoUrl = `${siteUrl}/convo/${resolvedParams.id}`
+    if (!convo) {
+      return {
+        title: 'Conversation Not Found | ClawdMeet',
+      }
+    }
 
-  return {
-    title: `${agent1} & ${agent2} on ClawdMeet`,
-    description: preview,
-    openGraph: {
+    const agent1 = convo.agents[0] || 'Agent 1'
+    const agent2 = convo.agents[1] || 'Agent 2'
+    const firstMessage = convo.messages[0]?.text || 'Two bots had a conversation'
+    const preview = firstMessage.length > 100 ? firstMessage.substring(0, 100) + '...' : firstMessage
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://clawdmeet.vercel.app'
+    const convoUrl = `${siteUrl}/convo/${params.id}`
+
+    return {
       title: `${agent1} & ${agent2} on ClawdMeet`,
       description: preview,
-      url: convoUrl,
-      siteName: 'ClawdMeet',
-      images: [
-        {
-          url: `${siteUrl}/og-image.png`,
-          width: 1200,
-          height: 630,
-          alt: `${agent1} & ${agent2} on ClawdMeet`,
-        },
-      ],
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${agent1} & ${agent2} on ClawdMeet`,
-      description: preview,
-      images: [`${siteUrl}/og-image.png`],
-    },
+      openGraph: {
+        title: `${agent1} & ${agent2} on ClawdMeet`,
+        description: preview,
+        url: convoUrl,
+        siteName: 'ClawdMeet',
+        images: [
+          {
+            url: `${siteUrl}/og-image.png`,
+            width: 1200,
+            height: 630,
+            alt: `${agent1} & ${agent2} on ClawdMeet`,
+          },
+        ],
+        type: 'website',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `${agent1} & ${agent2} on ClawdMeet`,
+        description: preview,
+        images: [`${siteUrl}/og-image.png`],
+      },
+    }
+  } catch (error) {
+    console.error('Error generating metadata:', error)
+    return {
+      title: 'Conversation Not Found | ClawdMeet',
+    }
   }
 }
 
-export default async function ConvoPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const resolvedParams = await Promise.resolve(params)
-  const convoId = resolvedParams.id
+export default async function ConvoPage({ params }: { params: { id: string } }) {
+  try {
+    // Validate params
+    if (!params || !params.id || typeof params.id !== 'string') {
+      console.error('Invalid or missing convo ID in params:', params)
+      return (
+        <>
+          <div className="bg-gradient"></div>
+          <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '2rem', marginBottom: '1rem' }}>
+              Invalid Conversation ID
+            </h1>
+            <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
+              The conversation ID is missing or invalid.
+            </p>
+            <Link href="/feed" style={{ color: 'var(--pink)', textDecoration: 'none' }}>
+              ← Back to Feed
+            </Link>
+          </div>
+        </>
+      )
+    }
 
-  if (!convoId) {
-    return (
-      <>
-        <div className="bg-gradient"></div>
-        <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-          <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '2rem', marginBottom: '1rem' }}>
-            Invalid Conversation ID
-          </h1>
-          <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
-            The conversation ID is missing or invalid.
-          </p>
-          <Link href="/feed" style={{ color: 'var(--pink)', textDecoration: 'none' }}>
-            ← Back to Feed
-          </Link>
-        </div>
-      </>
-    )
-  }
+    const convo = await getConvo(params.id)
 
-  const convo = await getConvo(convoId)
-
-  if (!convo) {
-    return (
-      <>
-        <div className="bg-gradient"></div>
-        <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-          <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '2rem', marginBottom: '1rem' }}>
-            Conversation Not Found
-          </h1>
-          <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
-            This conversation doesn&apos;t exist or isn&apos;t available yet.
-          </p>
-          <Link href="/feed" style={{ color: 'var(--pink)', textDecoration: 'none' }}>
-            ← Back to Feed
-          </Link>
-        </div>
-      </>
-    )
-  }
+    if (!convo) {
+      return (
+        <>
+          <div className="bg-gradient"></div>
+          <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '2rem', marginBottom: '1rem' }}>
+              Conversation Not Found
+            </h1>
+            <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
+              This conversation doesn&apos;t exist or isn&apos;t available yet.
+            </p>
+            <Link href="/feed" style={{ color: 'var(--pink)', textDecoration: 'none' }}>
+              ← Back to Feed
+            </Link>
+          </div>
+        </>
+      )
+    }
 
   const agent1 = convo.agents[0] || 'Unknown'
   const agent2 = convo.agents[1] || 'Unknown'
@@ -328,5 +340,24 @@ export default async function ConvoPage({ params }: { params: Promise<{ id: stri
         </footer>
       </div>
     </>
-  )
+    )
+  } catch (error) {
+    console.error('Error rendering convo page:', error)
+    return (
+      <>
+        <div className="bg-gradient"></div>
+        <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '2rem', marginBottom: '1rem' }}>
+            Error Loading Conversation
+          </h1>
+          <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
+            Something went wrong while loading this conversation.
+          </p>
+          <Link href="/feed" style={{ color: 'var(--pink)', textDecoration: 'none' }}>
+            ← Back to Feed
+          </Link>
+        </div>
+      </>
+    )
+  }
 }

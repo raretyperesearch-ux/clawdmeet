@@ -6,6 +6,7 @@ import Link from 'next/link'
 interface Message {
   from: string
   text: string
+  timestamp?: string
 }
 
 interface FeedItem {
@@ -20,15 +21,21 @@ interface FeedItem {
   human_twitters?: (string | null)[]
 }
 
-interface ActiveConvo {
+interface Convo {
   id: string
-  agents: string[]
-  messages: Message[]
-  message_count: number
-  max_messages: number
+  agent_1: string
+  agent_2: string
+  messages: Array<{ from: string; text: string; timestamp: string }>
   status: string
-  verdict: string | null
+  turn: string
+  verdict_1: string | null
+  verdict_2: string | null
+  verdict?: string
+  agents?: string[]
   created_at: string
+  completed_at?: string
+  message_count?: number
+  max_messages?: number
 }
 
 export default function Home() {
@@ -45,8 +52,8 @@ export default function Home() {
   const [feed, setFeed] = useState<FeedItem[]>([])
   const [feedLoading, setFeedLoading] = useState(true)
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
-  const [activeConvos, setActiveConvos] = useState<ActiveConvo[]>([])
-  const [completedConvos, setCompletedConvos] = useState<Map<string, { convo: ActiveConvo; completedAt: number }>>(new Map())
+  const [activeConvos, setActiveConvos] = useState<Convo[]>([])
+  const [completedConvos, setCompletedConvos] = useState<Map<string, { convo: Convo; completedAt: number }>>(new Map())
 
   useEffect(() => {
     // Fetch stats
@@ -104,20 +111,20 @@ export default function Home() {
     try {
       const response = await fetch('/api/active-convos')
       if (response.ok) {
-        const data = await response.json()
-        const newConvos = data.convos || []
+        const data = await response.json() as { convos: Convo[] }
+        const newConvos: Convo[] = data.convos || []
         
         // Check for newly completed convos
         setActiveConvos(prev => {
           const prevMap = new Map(prev.map(c => [c.id, c]))
-          const newMap = new Map(newConvos.map((c: ActiveConvo) => [c.id, c]))
+          const newMap = new Map(newConvos.map((c: Convo) => [c.id, c]))
           
           // Find convos that just completed
           prev.forEach(prevConvo => {
             const newConvo = newMap.get(prevConvo.id)
             if (!newConvo || (newConvo.verdict && !prevConvo.verdict)) {
               // Convo completed or got verdict
-              if (newConvo?.verdict) {
+              if (newConvo && newConvo.verdict) {
                 setCompletedConvos(prevCompleted => {
                   const newCompleted = new Map(prevCompleted)
                   newCompleted.set(prevConvo.id, {
@@ -281,7 +288,7 @@ export default function Home() {
           >
             {activeConvos.map((convo) => {
               const latestMessages = convo.messages.slice(-4)
-              const isCompleted = convo.verdict !== null
+              const isCompleted = convo.verdict !== null && convo.verdict !== undefined
               
               return (
                 <div 
@@ -335,10 +342,10 @@ export default function Home() {
                       fontSize: '1rem',
                       color: 'var(--pink)'
                     }}>
-                      {convo.agents.join(' × ')}
+                      {convo.agents?.join(' × ') || `${convo.agent_1} × ${convo.agent_2}`}
                     </div>
                     <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>
-                      {convo.message_count}/{convo.max_messages}
+                      {convo.message_count || convo.messages.length}/{convo.max_messages || 30}
                     </div>
                   </div>
                   
@@ -363,14 +370,14 @@ export default function Home() {
                           {msg.from}
                         </div>
                         <div style={{
-                          background: msg.from === convo.agents[0] 
+                          background: msg.from === (convo.agents?.[0] || convo.agent_1)
                             ? 'rgba(139, 92, 246, 0.2)' 
                             : 'rgba(255, 62, 138, 0.2)',
                           borderRadius: '0.5rem',
                           padding: '0.5rem 0.75rem',
                           fontSize: '0.8rem',
-                          marginLeft: msg.from === convo.agents[0] ? '0' : '1rem',
-                          marginRight: msg.from === convo.agents[0] ? '1rem' : '0',
+                          marginLeft: msg.from === (convo.agents?.[0] || convo.agent_1) ? '0' : '1rem',
+                          marginRight: msg.from === (convo.agents?.[0] || convo.agent_1) ? '1rem' : '0',
                         }}>
                           {msg.text}
                         </div>
@@ -464,7 +471,7 @@ export default function Home() {
                       fontSize: '1rem',
                       color: 'var(--pink)'
                     }}>
-                      {convo.agents.join(' × ')}
+                      {convo.agents?.join(' × ') || `${convo.agent_1} × ${convo.agent_2}`}
                     </div>
                   </div>
                   
@@ -489,14 +496,14 @@ export default function Home() {
                           {msg.from}
                         </div>
                         <div style={{
-                          background: msg.from === convo.agents[0] 
+                          background: msg.from === (convo.agents?.[0] || convo.agent_1)
                             ? 'rgba(139, 92, 246, 0.2)' 
                             : 'rgba(255, 62, 138, 0.2)',
                           borderRadius: '0.5rem',
                           padding: '0.5rem 0.75rem',
                           fontSize: '0.8rem',
-                          marginLeft: msg.from === convo.agents[0] ? '0' : '1rem',
-                          marginRight: msg.from === convo.agents[0] ? '1rem' : '0',
+                          marginLeft: msg.from === (convo.agents?.[0] || convo.agent_1) ? '0' : '1rem',
+                          marginRight: msg.from === (convo.agents?.[0] || convo.agent_1) ? '1rem' : '0',
                         }}>
                           {msg.text}
                         </div>

@@ -139,16 +139,11 @@ async function getConvo(id: string): Promise<ConvoData | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   try {
-    const convo = await getConvo(params.id)
+    const { id } = await params
+    const convo = await getConvo(id)
   
-  if (!convo) {
-    return {
-      title: 'Conversation Not Found | ClawdMeet',
-    }
-  }
-
     if (!convo) {
       return {
         title: 'Conversation Not Found | ClawdMeet',
@@ -160,7 +155,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     const firstMessage = convo.messages[0]?.text || 'Two bots had a conversation'
     const preview = firstMessage.length > 100 ? firstMessage.substring(0, 100) + '...' : firstMessage
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://clawdmeet.vercel.app'
-    const convoUrl = `${siteUrl}/convo/${params.id}`
+    const convoUrl = `${siteUrl}/convo/${id}`
 
     return {
       title: `${agent1} & ${agent2} on ClawdMeet`,
@@ -195,47 +190,22 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default async function ConvoPage({ params }: { params: { id: string } }) {
+export default async function ConvoPage({ params }: { params: Promise<{ id: string }> }) {
   try {
-    // Validate params
-    if (!params || !params.id || typeof params.id !== 'string') {
-      console.error('Invalid or missing convo ID in params:', params)
+    const { id } = await params
+    
+    if (!id || typeof id !== 'string') {
+      console.error('Invalid or missing convo ID:', id)
       return (
-        <>
-          <div className="bg-gradient"></div>
-          <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-            <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '2rem', marginBottom: '1rem' }}>
-              Invalid Conversation ID
-            </h1>
-            <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
-              The conversation ID is missing or invalid.
-            </p>
-            <Link href="/feed" style={{ color: 'var(--pink)', textDecoration: 'none' }}>
-              ← Back to Feed
-            </Link>
-          </div>
-        </>
+        <div>Not found</div>
       )
     }
 
-    const convo = await getConvo(params.id)
+    const convo = await getConvo(id)
 
     if (!convo) {
       return (
-        <>
-          <div className="bg-gradient"></div>
-          <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-            <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '2rem', marginBottom: '1rem' }}>
-              Conversation Not Found
-            </h1>
-            <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
-              This conversation doesn&apos;t exist or isn&apos;t available yet.
-            </p>
-            <Link href="/feed" style={{ color: 'var(--pink)', textDecoration: 'none' }}>
-              ← Back to Feed
-            </Link>
-          </div>
-        </>
+        <div>Not found</div>
       )
     }
 

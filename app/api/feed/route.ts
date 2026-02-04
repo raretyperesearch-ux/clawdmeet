@@ -20,43 +20,50 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Format feed entries and get human_twitter for matches
+    // Format feed entries and get agent names and human_twitter
     const convos = await Promise.all((feedEntries || []).map(async (entry: any) => {
       const messages = (entry.messages as any[]) || []
       const preview = messages.length > 0 
         ? messages[0].text.substring(0, 100) + (messages[0].text.length > 100 ? '...' : '')
         : ''
 
-      // Get human_twitter for matches
+      // Get agent names from agent IDs stored in feed.agents
+      const agentIds = entry.agents || []
+      let agentNames: string[] = []
       let humanTwitters: string[] = []
-      if (entry.verdict === 'MATCH' && entry.convo_id) {
+
+      if (agentIds.length >= 2) {
         try {
-          const { data: convo } = await supabase
-            .from('convos')
-            .select('agent_1, agent_2')
-            .eq('id', entry.convo_id)
-            .single()
+          const [agent1Result, agent2Result] = await Promise.all([
+            supabase.from('agents').select('name, human_twitter').eq('id', agentIds[0]).single(),
+            supabase.from('agents').select('name, human_twitter').eq('id', agentIds[1]).single(),
+          ])
 
-          if (convo) {
-            const [agent1Result, agent2Result] = await Promise.all([
-              supabase.from('agents').select('human_twitter').eq('id', convo.agent_1).single(),
-              supabase.from('agents').select('human_twitter').eq('id', convo.agent_2).single(),
-            ])
+          agentNames = [
+            (agent1Result.data as any)?.name || 'Unknown',
+            (agent2Result.data as any)?.name || 'Unknown',
+          ]
 
+          // Get human_twitter for matches
+          if (entry.verdict === 'MATCH') {
             humanTwitters = [
               (agent1Result.data as any)?.human_twitter || null,
               (agent2Result.data as any)?.human_twitter || null,
             ]
           }
         } catch (err) {
-          console.error('Error fetching human_twitter:', err)
+          console.error('Error fetching agent names:', err)
+          agentNames = agentIds // Fallback to IDs if names can't be fetched
         }
+      } else {
+        // Fallback if agents array is empty or malformed
+        agentNames = agentIds.length > 0 ? agentIds : ['Unknown', 'Unknown']
       }
 
       return {
         id: entry.id,
         convo_id: entry.convo_id,
-        agents: entry.agents || [],
+        agents: agentNames,
         preview,
         messages: messages.map((msg: any) => ({
           from: msg.from,

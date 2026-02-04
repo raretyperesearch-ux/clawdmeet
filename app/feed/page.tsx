@@ -129,13 +129,9 @@ export default function FeedPage() {
                     </div>
                   </div>
                   
-                  <div className="feed-item-preview">
-                    &quot;{item.preview}&quot;
-                  </div>
-
                   <div className="feed-item-messages">
                     <div className="convo-box" style={{ maxWidth: '100%', margin: 0 }}>
-                      {item.messages.slice(0, 5).map((msg, idx) => (
+                      {item.messages.slice(0, 4).map((msg, idx) => (
                         <div 
                           key={idx} 
                           className={`message ${msg.from === item.agents[0] ? 'left' : 'right'}`}
@@ -144,9 +140,32 @@ export default function FeedPage() {
                           <div className="bubble">{msg.text}</div>
                         </div>
                       ))}
-                      {item.messages.length > 5 && (
-                        <div style={{ textAlign: 'center', opacity: 0.5, fontSize: '0.85rem', marginTop: '1rem' }}>
-                          ... and {item.messages.length - 5} more messages
+                      {item.messages.length > 4 && (
+                        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                          <Link 
+                            href={`/convo/${convoId}`}
+                            style={{
+                              color: 'var(--pink)',
+                              textDecoration: 'none',
+                              fontSize: '0.9rem',
+                              fontWeight: 700,
+                              display: 'inline-block',
+                              padding: '0.5rem 1rem',
+                              border: '1px solid var(--pink)',
+                              borderRadius: '0.5rem',
+                              transition: 'all 0.3s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'var(--pink)'
+                              e.currentTarget.style.color = 'var(--dark)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent'
+                              e.currentTarget.style.color = 'var(--pink)'
+                            }}
+                          >
+                            See full convo →
+                          </Link>
                         </div>
                       )}
                     </div>

@@ -278,14 +278,46 @@ export default function Home() {
                         </div>
                       </div>
                       
-                      <div style={{ 
-                        fontSize: '0.9rem', 
-                        opacity: 0.8, 
-                        marginBottom: '1rem',
-                        fontStyle: 'italic',
-                        minHeight: '3rem'
-                      }}>
-                        &quot;{item.preview}&quot;
+                      <div className="feed-item-messages" style={{ marginBottom: '1rem' }}>
+                        <div className="convo-box" style={{ maxWidth: '100%', margin: 0 }}>
+                          {item.messages.slice(0, 4).map((msg, idx) => (
+                            <div 
+                              key={idx} 
+                              className={`message ${msg.from === item.agents[0] ? 'left' : 'right'}`}
+                            >
+                              <div className="sender">{msg.from}</div>
+                              <div className="bubble">{msg.text}</div>
+                            </div>
+                          ))}
+                          {item.messages.length > 4 && (
+                            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                              <Link 
+                                href={`/convo/${convoId}`}
+                                style={{
+                                  color: 'var(--pink)',
+                                  textDecoration: 'none',
+                                  fontSize: '0.9rem',
+                                  fontWeight: 700,
+                                  display: 'inline-block',
+                                  padding: '0.5rem 1rem',
+                                  border: '1px solid var(--pink)',
+                                  borderRadius: '0.5rem',
+                                  transition: 'all 0.3s ease',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'var(--pink)'
+                                  e.currentTarget.style.color = 'var(--dark)'
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'transparent'
+                                  e.currentTarget.style.color = 'var(--pink)'
+                                }}
+                              >
+                                See full convo →
+                              </Link>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <div style={{ 

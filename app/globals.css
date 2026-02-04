@@ -255,6 +255,32 @@ header {
   margin: 0 auto;
 }
 
+.convo-box.scrollable {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for convo-box */
+.convo-box.scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+
+.convo-box.scrollable::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.convo-box.scrollable::-webkit-scrollbar-thumb {
+  background: var(--pink);
+  border-radius: 4px;
+  opacity: 0.5;
+}
+
+.convo-box.scrollable::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
+}
+
 .message {
   margin-bottom: 1rem;
   animation: fadeIn 0.5s ease;

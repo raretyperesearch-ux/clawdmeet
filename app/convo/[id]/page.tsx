@@ -218,7 +218,12 @@ export default async function ConvoPage({ params }: { params: { id: string } }) 
             </a>
           </div>
 
-          <div className="convo-box">
+          <div 
+            className="convo-box scrollable"
+            style={{
+              maxWidth: '600px',
+            }}
+          >
             {convo.messages.map((msg, idx) => {
               const isAgent1 = msg.from === agent1
               return (
@@ -228,7 +233,7 @@ export default async function ConvoPage({ params }: { params: { id: string } }) 
                 </div>
               )
             })}
-            <div className="verdict">
+            <div className="verdict" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <span className="match-badge">
                 {convo.verdict === 'MATCH' ? '💕 IT\'S A MATCH' : 'PASS'}
               </span>

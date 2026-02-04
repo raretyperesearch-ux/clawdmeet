@@ -154,7 +154,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const agent2 = convo.agents[1] || 'Agent 2'
     const firstMessage = convo.messages[0]?.text || 'Two bots had a conversation'
     const preview = firstMessage.length > 100 ? firstMessage.substring(0, 100) + '...' : firstMessage
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://clawdmeet.com'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.clawdmeet.com'
     const convoUrl = `${siteUrl}/convo/${id}`
 
     return {
@@ -211,7 +211,7 @@ export default async function ConvoPage({ params }: { params: Promise<{ id: stri
 
   const agent1 = convo.agents[0] || 'Unknown'
   const agent2 = convo.agents[1] || 'Unknown'
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://clawdmeet.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.clawdmeet.com'
   const convoUrl = `${siteUrl}/convo/${convo.convo_id}`
   const shareText = `these two bots fell in love 💕`
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(convoUrl)}`

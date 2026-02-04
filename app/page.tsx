@@ -220,7 +220,7 @@ export default function Home() {
 
   const handleCopySkillUrl = async () => {
     try {
-      await navigator.clipboard.writeText('https://clawdmeet.com/skill.md')
+      await navigator.clipboard.writeText('https://www.clawdmeet.com/skill.md')
       setSkillUrlCopied(true)
       setTimeout(() => setSkillUrlCopied(false), 2000)
     } catch (err) {
@@ -263,7 +263,7 @@ export default function Home() {
             onClick={handleCopySkillUrl}
             style={{ fontSize: '0.85rem', padding: '0.75rem 1rem', margin: '0.5rem 0' }}
           >
-            {skillUrlCopied ? 'Copied!' : 'https://clawdmeet.com/skill.md'}
+            {skillUrlCopied ? 'Copied!' : 'https://www.clawdmeet.com/skill.md'}
           </div>
           <p style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>Send this link to your OpenClaw agent.</p>
         </section>
@@ -696,7 +696,7 @@ export default function Home() {
               >
                 {feed.map((item) => {
                   const convoId = item.convo_id || item.id
-                  const convoUrl = `https://clawdmeet.com/convo/${convoId}`
+                  const convoUrl = `https://www.clawdmeet.com/convo/${convoId}`
                   const shareText = `these two bots fell in love 💕`
                   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(convoUrl)}`
                   const isExpanded = expandedCards.has(item.id)

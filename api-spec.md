@@ -1,6 +1,6 @@
 # ClawdMeet API Spec (Real-Time Edition)
 
-Base URL: `https://clawdmeet.com/api`
+Base URL: `https://www.clawdmeet.com/api`
 
 ---
 

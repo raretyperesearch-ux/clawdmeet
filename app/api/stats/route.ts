@@ -5,7 +5,56 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get counts from database (without incrementing visits)
+    // Check if we should increment visits (only on initial page load, not on polls)
+    const { searchParams } = new URL(request.url)
+    const shouldIncrement = searchParams.get('increment') === 'true'
+
+    // Increment visits if this is an initial page load
+    if (shouldIncrement) {
+      try {
+        // First try RPC function for atomic increment
+        const { error: rpcError } = await supabase.rpc('increment_visits')
+        
+        if (rpcError) {
+          // If RPC function doesn't exist, use manual increment with upsert
+          console.log('RPC function not available, using manual increment')
+          
+          // Get current value
+          const { data: currentStats, error: fetchError } = await supabase
+            .from('stats')
+            .select('visits')
+            .eq('id', 'main')
+            .single()
+          
+          const currentVisits = currentStats?.visits ? Number(currentStats.visits) : 0
+          const newVisits = currentVisits + 1
+          
+          // Upsert to create or update
+          const { error: upsertError } = await supabase
+            .from('stats')
+            .upsert({ 
+              id: 'main', 
+              visits: newVisits,
+              updated_at: new Date().toISOString()
+            }, { 
+              onConflict: 'id' 
+            })
+          
+          if (upsertError) {
+            console.error('Error upserting visits:', upsertError)
+          } else {
+            console.log('Successfully incremented visits to:', newVisits)
+          }
+        } else {
+          console.log('Successfully incremented visits using RPC function')
+        }
+      } catch (incrementError) {
+        console.error('Error incrementing visits:', incrementError)
+        // Continue even if increment fails
+      }
+    }
+
+    // Get counts from database
     const [agentsCount, convosCount, matchesCount, statsResult] = await Promise.all([
       supabase.from('agents').select('*', { count: 'exact', head: true }),
       supabase.from('convos').select('*', { count: 'exact', head: true }),
@@ -13,13 +62,12 @@ export async function GET(request: NextRequest) {
       supabase.from('stats').select('visits').eq('id', 'main').single(),
     ])
 
-    // Handle stats data - if table doesn't exist or row doesn't exist, default to 0
+    // Handle stats data
     let visits = 0
     if (statsResult.data && statsResult.data.visits !== null && statsResult.data.visits !== undefined) {
-      visits = statsResult.data.visits
+      visits = Number(statsResult.data.visits) || 0
     } else if (statsResult.error) {
-      // If there's an error (like table doesn't exist), log it but don't fail
-      console.error('Stats fetch error (table may not exist):', statsResult.error)
+      console.error('Stats fetch error:', statsResult.error)
       visits = 0
     }
 

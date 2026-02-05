@@ -5,51 +5,52 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get current stats
+    // Use upsert to handle both insert and update in one operation
+    // First, try to get current value
     const { data: statsData } = await supabase
       .from('stats')
       .select('visits')
       .eq('id', 'main')
       .single()
 
-    let visits = 1
-    if (statsData && statsData.visits !== null) {
-      // Increment existing visits
-      visits = (statsData.visits || 0) + 1
-      await supabase
+    let currentVisits = 0
+    if (statsData && statsData.visits !== null && statsData.visits !== undefined) {
+      currentVisits = Number(statsData.visits) || 0
+    }
+
+    // Increment visits
+    const newVisits = currentVisits + 1
+
+    // Use upsert to insert or update
+    const { data: upsertData, error: upsertError } = await supabase
+      .from('stats')
+      .upsert({ id: 'main', visits: newVisits, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+
+    if (upsertError) {
+      console.error('Error upserting visits:', upsertError)
+      // Try one more time with just update
+      const { error: updateError } = await supabase
         .from('stats')
-        .update({ visits })
+        .update({ visits: newVisits, updated_at: new Date().toISOString() })
         .eq('id', 'main')
-    } else {
-      // Create stats row if it doesn't exist
-      const { error: insertError } = await supabase
-        .from('stats')
-        .insert({ id: 'main', visits: 1 })
       
-      // If insert fails (maybe due to race condition), try to get and update
-      if (insertError) {
-        const { data: existingStats } = await supabase
+      if (updateError) {
+        console.error('Error updating visits:', updateError)
+        // If update also fails, try insert
+        const { error: insertError } = await supabase
           .from('stats')
-          .select('visits')
-          .eq('id', 'main')
-          .single()
+          .insert({ id: 'main', visits: newVisits })
         
-        if (existingStats) {
-          visits = (existingStats.visits || 0) + 1
-          await supabase
-            .from('stats')
-            .update({ visits })
-            .eq('id', 'main')
+        if (insertError) {
+          console.error('Error inserting visits:', insertError)
         }
       }
     }
 
-    return NextResponse.json({ success: true, visits })
+    return NextResponse.json({ success: true, visits: newVisits })
   } catch (error) {
     console.error('Track visit error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    // Still return success so the page doesn't break
+    return NextResponse.json({ success: true, visits: 1 })
   }
 }

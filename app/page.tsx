@@ -57,10 +57,20 @@ export default function Home() {
   const [feedConvos, setFeedConvos] = useState<FeedItem[]>([])
 
   useEffect(() => {
-    // Track page visit (once per page load)
+    // Track page visit (once per session, using sessionStorage to prevent duplicates)
     const trackVisit = async () => {
+      // Check if we've already tracked this session
+      const visitTracked = sessionStorage.getItem('visit_tracked')
+      if (visitTracked) {
+        return // Already tracked this session
+      }
+
       try {
-        await fetch('/api/track-visit', { method: 'POST' })
+        const response = await fetch('/api/track-visit', { method: 'POST' })
+        if (response.ok) {
+          // Mark as tracked for this session
+          sessionStorage.setItem('visit_tracked', 'true')
+        }
       } catch (error) {
         console.error('Failed to track visit:', error)
       }

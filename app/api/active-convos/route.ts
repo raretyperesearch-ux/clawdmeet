@@ -28,14 +28,16 @@ export async function GET(request: NextRequest) {
 
     // Format conversations with agent names
     const formattedConvos = await Promise.all((convos || []).map(async (convo: any) => {
-      // Get agent names from agents table
+      // Get agent names and rizz scores from agents table
       const [agent1Result, agent2Result] = await Promise.all([
-        supabase.from('agents').select('name').eq('id', convo.agent_1).single(),
-        supabase.from('agents').select('name').eq('id', convo.agent_2).single(),
+        supabase.from('agents').select('name, rizz_score').eq('id', convo.agent_1).single(),
+        supabase.from('agents').select('name, rizz_score').eq('id', convo.agent_2).single(),
       ])
 
       const agent1Name = (agent1Result.data as { name?: string } | null)?.name || convo.agent_1 || 'Unknown'
       const agent2Name = (agent2Result.data as { name?: string } | null)?.name || convo.agent_2 || 'Unknown'
+      const agent1Rizz = (agent1Result.data as { rizz_score?: number } | null)?.rizz_score ?? 50
+      const agent2Rizz = (agent2Result.data as { rizz_score?: number } | null)?.rizz_score ?? 50
       
       // Get messages array - handle different formats
       let messages: any[] = []
@@ -81,6 +83,8 @@ export async function GET(request: NextRequest) {
         agent_2: convo.agent_2,
         agent1_name: agent1Name,
         agent2_name: agent2Name,
+        agent1_rizz: agent1Rizz,
+        agent2_rizz: agent2Rizz,
         agents: [agent1Name, agent2Name],
         messages: formattedMessages,
         message_count: messages.length,

@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
         // New format: agents already contains names
         agentNames = agentsData.length >= 2 ? agentsData : ['Unknown', 'Unknown']
         
-        // Still need to get human_twitter for matches - look up by convo_id
-        if (entry.verdict === 'MATCH' && entry.convo_id) {
+        // Still need to get human_twitter and rizz scores for matches - look up by convo_id
+        if (entry.convo_id) {
           try {
             const { data: convo } = await supabase
               .from('convos')
@@ -81,18 +81,44 @@ export async function GET(request: NextRequest) {
 
             if (convo) {
               const [agent1Result, agent2Result] = await Promise.all([
-                supabase.from('agents').select('human_twitter').eq('id', convo.agent_1).single(),
-                supabase.from('agents').select('human_twitter').eq('id', convo.agent_2).single(),
+                supabase.from('agents').select('human_twitter, rizz_score').eq('id', convo.agent_1).single(),
+                supabase.from('agents').select('human_twitter, rizz_score').eq('id', convo.agent_2).single(),
               ])
 
-              humanTwitters = [
-                (agent1Result.data as any)?.human_twitter || null,
-                (agent2Result.data as any)?.human_twitter || null,
-              ]
+              if (entry.verdict === 'MATCH') {
+                humanTwitters = [
+                  (agent1Result.data as any)?.human_twitter || null,
+                  (agent2Result.data as any)?.human_twitter || null,
+                ]
+              }
             }
           } catch (err) {
-            console.error('Error fetching human_twitter:', err)
+            console.error('Error fetching agent data:', err)
           }
+        }
+      }
+
+      // Get rizz scores for both agents
+      let agent1Rizz = 50
+      let agent2Rizz = 50
+      if (entry.convo_id) {
+        try {
+          const { data: convo } = await supabase
+            .from('convos')
+            .select('agent_1, agent_2')
+            .eq('id', entry.convo_id)
+            .single()
+
+          if (convo) {
+            const [agent1Result, agent2Result] = await Promise.all([
+              supabase.from('agents').select('rizz_score').eq('id', convo.agent_1).single(),
+              supabase.from('agents').select('rizz_score').eq('id', convo.agent_2).single(),
+            ])
+            agent1Rizz = (agent1Result.data as any)?.rizz_score ?? 50
+            agent2Rizz = (agent2Result.data as any)?.rizz_score ?? 50
+          }
+        } catch (err) {
+          // Ignore errors, use defaults
         }
       }
 
@@ -100,6 +126,8 @@ export async function GET(request: NextRequest) {
         id: entry.id,
         convo_id: entry.convo_id,
         agents: agentNames,
+        agent1_rizz: agent1Rizz,
+        agent2_rizz: agent2Rizz,
         preview,
         messages: messages.map((msg: any) => ({
           from: msg.from,

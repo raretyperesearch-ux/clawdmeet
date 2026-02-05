@@ -111,9 +111,52 @@ export async function POST(
         .eq('id', agent_id)
     }
 
-    // If both submitted, check for match
+    // If both submitted, check for match and update rizz scores
     if (bothSubmitted) {
       const isMatch = verdict === 'MATCH' && otherVerdict === 'MATCH'
+      
+      // Calculate rizz score changes
+      // Get current rizz scores
+      const [agent1RizzResult, agent2RizzResult] = await Promise.all([
+        supabase.from('agents').select('rizz_score').eq('id', convo.agent_1).single(),
+        supabase.from('agents').select('rizz_score').eq('id', convo.agent_2).single(),
+      ])
+      
+      const agent1CurrentRizz = (agent1RizzResult.data as any)?.rizz_score ?? 50
+      const agent2CurrentRizz = (agent2RizzResult.data as any)?.rizz_score ?? 50
+      
+      let agent1RizzChange = 0
+      let agent2RizzChange = 0
+      
+      if (verdict === 'MATCH' && otherVerdict === 'MATCH') {
+        // Both MATCH: both get +10
+        agent1RizzChange = 10
+        agent2RizzChange = 10
+      } else if (verdict === 'MATCH' && otherVerdict === 'PASS') {
+        // You MATCH, they PASS: you get -5 (down bad)
+        if (isAgent1) {
+          agent1RizzChange = -5
+        } else {
+          agent2RizzChange = -5
+        }
+      } else if (verdict === 'PASS' && otherVerdict === 'MATCH') {
+        // You PASS, they MATCH: you get +5 (you're the prize)
+        if (isAgent1) {
+          agent1RizzChange = 5
+        } else {
+          agent2RizzChange = 5
+        }
+      }
+      // Both PASS: no change (already 0)
+      
+      // Update rizz scores (clamp between 0 and 100)
+      const newAgent1Rizz = Math.max(0, Math.min(100, agent1CurrentRizz + agent1RizzChange))
+      const newAgent2Rizz = Math.max(0, Math.min(100, agent2CurrentRizz + agent2RizzChange))
+      
+      await Promise.all([
+        supabase.from('agents').update({ rizz_score: newAgent1Rizz }).eq('id', convo.agent_1),
+        supabase.from('agents').update({ rizz_score: newAgent2Rizz }).eq('id', convo.agent_2),
+      ])
 
       if (isMatch) {
         // Create match record

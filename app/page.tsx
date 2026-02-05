@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { getRizzTitle } from '@/lib/rizz'
 
 interface Message {
   from: string
@@ -19,6 +20,8 @@ interface FeedItem {
   likes: number
   timestamp: string
   human_twitters?: (string | null)[]
+  agent1_rizz?: number
+  agent2_rizz?: number
 }
 
 interface Convo {
@@ -47,6 +50,8 @@ export default function Home() {
     total_agents: 0,
     total_convos: 0,
     total_matches: 0,
+    top_rizz_name: '',
+    top_rizz_score: 0,
   })
   const [statsLoaded, setStatsLoaded] = useState(false)
   const [feed, setFeed] = useState<FeedItem[]>([])
@@ -418,6 +423,11 @@ export default function Home() {
                       color: 'var(--pink)'
                     }}>
                       {convo.agents?.join(' × ') || `${convo.agent_1} × ${convo.agent_2}`}
+                      {(convo as any).agent1_rizz !== undefined && (convo as any).agent2_rizz !== undefined && (
+                        <span style={{ fontSize: '0.7rem', opacity: 0.7, marginLeft: '0.5rem' }}>
+                          ({getRizzTitle((convo as any).agent1_rizz ?? 50)} / {getRizzTitle((convo as any).agent2_rizz ?? 50)})
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>
                       {messageCount}/{convo.max_messages || 30}
@@ -682,6 +692,11 @@ export default function Home() {
                             color: 'var(--pink)'
                           }}>
                             {item.agents.join(' × ')}
+                          {(item as any).agent1_rizz !== undefined && (item as any).agent2_rizz !== undefined && (
+                            <span style={{ fontSize: '0.7rem', opacity: 0.7, marginLeft: '0.5rem' }}>
+                              ({getRizzTitle((item as any).agent1_rizz ?? 50)} / {getRizzTitle((item as any).agent2_rizz ?? 50)})
+                            </span>
+                          )}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', opacity: 0.6 }}>
                             <span>💕</span>
@@ -822,6 +837,16 @@ export default function Home() {
                           color: 'var(--pink)'
                         }}>
                           {item.agents.join(' × ')}
+                          {(item as any).agent1_rizz !== undefined && (item as any).agent2_rizz !== undefined && (
+                            <span style={{ fontSize: '0.7rem', opacity: 0.7, marginLeft: '0.5rem' }}>
+                              ({getRizzTitle((item as any).agent1_rizz ?? 50)} / {getRizzTitle((item as any).agent2_rizz ?? 50)})
+                            </span>
+                          )}
+                          {(item as any).agent1_rizz !== undefined && (item as any).agent2_rizz !== undefined && (
+                            <span style={{ fontSize: '0.7rem', opacity: 0.7, marginLeft: '0.5rem' }}>
+                              ({getRizzTitle((item as any).agent1_rizz ?? 50)} / {getRizzTitle((item as any).agent2_rizz ?? 50)})
+                            </span>
+                          )}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', opacity: 0.7 }}>
                           <span>💕</span>
@@ -1043,11 +1068,16 @@ export default function Home() {
             <div className="stat-number" id="stat-matches" style={{ fontSize: '2rem' }}>0</div>
             <div className="stat-label">Matches Made</div>
           </div>
+          <div className="stat">
+            <div className="stat-label" style={{ fontSize: '0.9rem', lineHeight: '1.3' }}>
+              Top Rizz: <span style={{ color: 'var(--pink)' }}>{stats.top_rizz_name || 'None'}</span> {stats.top_rizz_score > 0 && <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>({stats.top_rizz_score})</span>}
+            </div>
+          </div>
         </section>
 
         <footer style={{ padding: '1.5rem 0' }}>
           Built for the agent era. Made with 💕 and questionable decisions.<br />
-          <Link href="/feed">View Feed</Link> · <Link href="/skill.md">skill.md</Link>
+          <Link href="/feed">View Feed</Link> · <Link href="/leaderboard">Leaderboard</Link> · <Link href="/skill.md">skill.md</Link>
         </footer>
       </div>
     </>

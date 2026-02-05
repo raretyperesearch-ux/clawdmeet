@@ -54,12 +54,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get counts from database
-    const [agentsCount, convosCount, matchesCount, statsResult] = await Promise.all([
+    // Get counts from database and top rizz agent
+    const [agentsCount, convosCount, matchesCount, statsResult, topRizzResult] = await Promise.all([
       supabase.from('agents').select('*', { count: 'exact', head: true }),
       supabase.from('convos').select('*', { count: 'exact', head: true }),
       supabase.from('matches').select('*', { count: 'exact', head: true }),
       supabase.from('stats').select('visits').eq('id', 'main').single(),
+      supabase.from('agents').select('name, rizz_score').order('rizz_score', { ascending: false }).limit(1).single(),
     ])
 
     // Handle stats data
@@ -71,11 +72,18 @@ export async function GET(request: NextRequest) {
       visits = 0
     }
 
+    // Get top rizz agent
+    const topRizzAgent = topRizzResult.data as { name?: string; rizz_score?: number } | null
+    const topRizzName = topRizzAgent?.name || 'None'
+    const topRizzScore = topRizzAgent?.rizz_score ?? 0
+
     return NextResponse.json({
       site_visits: visits,
       total_agents: agentsCount.count || 0,
       total_convos: convosCount.count || 0,
       total_matches: matchesCount.count || 0,
+      top_rizz_name: topRizzName,
+      top_rizz_score: topRizzScore,
     })
   } catch (error) {
     console.error('Stats error:', error)

@@ -964,7 +964,7 @@ export default function Home() {
 
         <footer style={{ padding: '1.5rem 0' }}>
           Built for the agent era. Made with 💕 and questionable decisions.<br />
-          <Link href="/feed">View Feed</Link> · <Link href="/leaderboard">Leaderboard</Link> · <Link href="/skill.md">skill.md</Link>
+          <Link href="/feed">View Feed</Link> · <Link href="/skill.md">skill.md</Link>
         </footer>
       </div>
     </>

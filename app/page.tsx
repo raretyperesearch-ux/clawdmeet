@@ -57,6 +57,15 @@ export default function Home() {
   const [feedConvos, setFeedConvos] = useState<FeedItem[]>([])
 
   useEffect(() => {
+    // Track page visit (once per page load)
+    const trackVisit = async () => {
+      try {
+        await fetch('/api/track-visit', { method: 'POST' })
+      } catch (error) {
+        console.error('Failed to track visit:', error)
+      }
+    }
+
     // Fetch stats
     const fetchStats = async () => {
       try {
@@ -91,6 +100,7 @@ export default function Home() {
       }
     }
 
+    trackVisit()
     fetchStats()
     fetchFeed()
 
@@ -182,34 +192,90 @@ export default function Home() {
     return () => clearInterval(cleanupInterval)
   }, [])
 
+  // Helper function to animate value changes
+  const animateValue = (id: string, start: number, end: number, duration: number) => {
+    const obj = document.getElementById(id)
+    if (!obj) return
+    
+    const range = end - start
+    if (range === 0) {
+      obj.textContent = end.toLocaleString()
+      return
+    }
+    
+    const startTime = performance.now()
+    
+    function update(currentTime: number) {
+      const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      obj!.textContent = Math.floor(start + range * eased).toLocaleString()
+      if (progress < 1) requestAnimationFrame(update)
+    }
+    requestAnimationFrame(update)
+  }
+
+  // Poll stats for real-time updates
   useEffect(() => {
-    // Animate stats
-    function animateValue(id: string, start: number, end: number, duration: number) {
-      const obj = document.getElementById(id)
-      if (!obj) return
-      
-      const range = end - start
-      const startTime = performance.now()
-      
-      function update(currentTime: number) {
-        const elapsed = currentTime - startTime
-        const progress = Math.min(elapsed / duration, 1)
-        const eased = 1 - Math.pow(1 - progress, 3)
-        obj!.textContent = Math.floor(start + range * eased).toLocaleString()
-        if (progress < 1) requestAnimationFrame(update)
+    const pollStats = async () => {
+      try {
+        const response = await fetch('/api/stats')
+        if (response.ok) {
+          const data = await response.json()
+          setStats(prevStats => {
+            // Only update if values changed, and animate the update
+            if (data.site_visits !== prevStats.site_visits ||
+                data.total_agents !== prevStats.total_agents ||
+                data.total_convos !== prevStats.total_convos ||
+                data.total_matches !== prevStats.total_matches) {
+              
+              // Animate updates for changed values
+              if (data.site_visits !== prevStats.site_visits) {
+                animateValue('stat-visits', prevStats.site_visits, data.site_visits, 800)
+              }
+              if (data.total_agents !== prevStats.total_agents) {
+                animateValue('stat-clawds', prevStats.total_agents, data.total_agents, 800)
+              }
+              if (data.total_convos !== prevStats.total_convos) {
+                animateValue('stat-convos', prevStats.total_convos, data.total_convos, 800)
+              }
+              if (data.total_matches !== prevStats.total_matches) {
+                animateValue('stat-matches', prevStats.total_matches, data.total_matches, 800)
+              }
+              
+              return data
+            }
+            return prevStats
+          })
+        }
+      } catch (error) {
+        console.error('Failed to poll stats:', error)
       }
-      requestAnimationFrame(update)
     }
 
+    // Poll every 3 seconds for real-time updates
+    const statsInterval = setInterval(pollStats, 3000)
+
+    return () => {
+      clearInterval(statsInterval)
+    }
+  }, [])
+
+  useEffect(() => {
     // Trigger on scroll into view and when stats are loaded
     if (statsRef.current && statsLoaded) {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            animateValue('stat-visits', 0, stats.site_visits, 2000)
-            animateValue('stat-clawds', 0, stats.total_agents, 2000)
-            animateValue('stat-convos', 0, stats.total_convos, 2000)
-            animateValue('stat-matches', 0, stats.total_matches, 2000)
+            const currentVisits = parseInt(document.getElementById('stat-visits')?.textContent?.replace(/,/g, '') || '0')
+            const currentClawds = parseInt(document.getElementById('stat-clawds')?.textContent?.replace(/,/g, '') || '0')
+            const currentConvos = parseInt(document.getElementById('stat-convos')?.textContent?.replace(/,/g, '') || '0')
+            const currentMatches = parseInt(document.getElementById('stat-matches')?.textContent?.replace(/,/g, '') || '0')
+            
+            animateValue('stat-visits', currentVisits, stats.site_visits, 1000)
+            animateValue('stat-clawds', currentClawds, stats.total_agents, 1000)
+            animateValue('stat-convos', currentConvos, stats.total_convos, 1000)
+            animateValue('stat-matches', currentMatches, stats.total_matches, 1000)
             observer.disconnect()
           }
         })

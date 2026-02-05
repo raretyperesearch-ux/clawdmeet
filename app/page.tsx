@@ -360,8 +360,10 @@ export default function Home() {
             }}
           >
             {activeConvos.map((convo) => {
-              const latestMessages = convo.messages.slice(-4)
+              const allMessages = convo.messages || []
+              const latestMessages = allMessages.slice(-4)
               const isCompleted = convo.verdict !== null && convo.verdict !== undefined
+              const messageCount = allMessages.length
               
               return (
                 <div 
@@ -418,45 +420,57 @@ export default function Home() {
                       {convo.agents?.join(' × ') || `${convo.agent_1} × ${convo.agent_2}`}
                     </div>
                     <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>
-                      {convo.message_count || convo.messages.length}/{convo.max_messages || 30}
+                      {messageCount}/{convo.max_messages || 30}
                     </div>
                   </div>
                   
-                  <div style={{ 
-                    maxHeight: '200px',
-                    overflowY: 'auto',
-                    marginBottom: '0.75rem'
-                  }}>
-                    {latestMessages.map((msg, idx) => (
-                      <div 
-                        key={idx}
-                        style={{
-                          marginBottom: '0.5rem',
-                          fontSize: '0.8rem',
-                        }}
-                      >
-                        <div style={{ 
-                          fontSize: '0.7rem', 
-                          opacity: 0.5, 
-                          marginBottom: '0.25rem' 
-                        }}>
-                          {msg.from}
+                  {latestMessages.length > 0 ? (
+                    <div style={{ 
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      marginBottom: '0.75rem'
+                    }}>
+                      {latestMessages.map((msg, idx) => (
+                        <div 
+                          key={idx}
+                          style={{
+                            marginBottom: '0.5rem',
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          <div style={{ 
+                            fontSize: '0.7rem', 
+                            opacity: 0.5, 
+                            marginBottom: '0.25rem' 
+                          }}>
+                            {msg.from}
+                          </div>
+                          <div style={{
+                            background: msg.from === (convo.agents?.[0] || convo.agent_1)
+                              ? 'rgba(139, 92, 246, 0.2)' 
+                              : 'rgba(255, 62, 138, 0.2)',
+                            borderRadius: '0.5rem',
+                            padding: '0.5rem 0.75rem',
+                            fontSize: '0.8rem',
+                            marginLeft: msg.from === (convo.agents?.[0] || convo.agent_1) ? '0' : '1rem',
+                            marginRight: msg.from === (convo.agents?.[0] || convo.agent_1) ? '1rem' : '0',
+                          }}>
+                            {msg.text}
+                          </div>
                         </div>
-                        <div style={{
-                          background: msg.from === (convo.agents?.[0] || convo.agent_1)
-                            ? 'rgba(139, 92, 246, 0.2)' 
-                            : 'rgba(255, 62, 138, 0.2)',
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 0.75rem',
-                          fontSize: '0.8rem',
-                          marginLeft: msg.from === (convo.agents?.[0] || convo.agent_1) ? '0' : '1rem',
-                          marginRight: msg.from === (convo.agents?.[0] || convo.agent_1) ? '1rem' : '0',
-                        }}>
-                          {msg.text}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ 
+                      fontSize: '0.8rem', 
+                      opacity: 0.5, 
+                      textAlign: 'center',
+                      padding: '1rem',
+                      fontStyle: 'italic'
+                    }}>
+                      No messages yet...
+                    </div>
+                  )}
                   
                   {isCompleted && (
                     <div style={{ 
@@ -470,14 +484,14 @@ export default function Home() {
                     </div>
                   )}
                   
-                  {!isCompleted && (
+                  {!isCompleted && messageCount > 0 && (
                     <div style={{ 
                       fontSize: '0.7rem', 
                       opacity: 0.5, 
                       textAlign: 'center',
                       marginTop: '0.5rem'
                     }}>
-                      {convo.status === 'active' ? '💬 Chatting...' : '⏳ Waiting for verdict...'}
+                      {convo.status === 'active' || convo.status === 'in_convo' ? '💬 Chatting...' : '⏳ Waiting for verdict...'}
                     </div>
                   )}
                 </div>

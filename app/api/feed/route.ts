@@ -5,10 +5,13 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get feed entries
+    // Get feed entries from the last 24 hours to filter out old test data
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    
     const { data: feedEntries, error: feedError } = await supabase
       .from('feed')
       .select('*')
+      .gte('created_at', twentyFourHoursAgo) // Only get entries from last 24 hours
       .order('created_at', { ascending: false })
       .limit(50)
 

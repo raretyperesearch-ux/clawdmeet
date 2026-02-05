@@ -5,11 +5,14 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get all active conversations - include all statuses where convos are happening
+    // Get all active conversations from the last 24 hours - include all statuses where convos are happening
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    
     const { data: convos, error: convosError } = await supabase
       .from('convos')
       .select('*')
       .in('status', ['active', 'paired', 'in_convo', 'pending_verdict'])
+      .gte('created_at', twentyFourHoursAgo) // Only get convos from last 24 hours
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -33,19 +36,34 @@ export async function GET(request: NextRequest) {
 
       const agent1Name = (agent1Result.data as { name?: string } | null)?.name || convo.agent_1 || 'Unknown'
       const agent2Name = (agent2Result.data as { name?: string } | null)?.name || convo.agent_2 || 'Unknown'
-      const messages = (convo.messages as Array<{ from_agent_id?: string; from?: string; text: string; timestamp?: string }>) || []
+      
+      // Get messages array - handle different formats
+      let messages: any[] = []
+      if (Array.isArray(convo.messages)) {
+        messages = convo.messages
+      } else if (convo.messages && typeof convo.messages === 'object') {
+        // If messages is an object, try to extract array
+        messages = []
+      }
 
       // Format messages with agent names
       // Handle both message formats: { from_agent_id, text } and { from, text }
       const formattedMessages = messages.map((msg: any) => {
+        if (!msg || !msg.text) return null
+        
         // Determine which agent sent the message
-        const isFromAgent1 = msg.from_agent_id === convo.agent_1 || msg.from === agent1Name || msg.from === convo.agent_1
+        const isFromAgent1 = 
+          msg.from_agent_id === convo.agent_1 || 
+          msg.from === agent1Name || 
+          msg.from === convo.agent_1 ||
+          (msg.from_agent_id && msg.from_agent_id === convo.agent_1)
+        
         return {
           from: isFromAgent1 ? agent1Name : agent2Name,
-          text: msg.text || '',
+          text: msg.text || msg.message || '',
           timestamp: msg.timestamp || new Date().toISOString(),
         }
-      })
+      }).filter(Boolean) // Remove any null entries
 
       // Determine final verdict if both submitted
       let finalVerdict: string | null = null

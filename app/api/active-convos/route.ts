@@ -5,11 +5,11 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get all active conversations
+    // Get all active conversations - include all statuses where convos are happening
     const { data: convos, error: convosError } = await supabase
       .from('convos')
       .select('*')
-      .in('status', ['active', 'pending_verdict'])
+      .in('status', ['active', 'paired', 'in_convo', 'pending_verdict'])
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -21,24 +21,31 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    console.log(`Found ${convos?.length || 0} active conversations`)
+
     // Format conversations with agent names
-    const formattedConvos = await Promise.all((convos || []).map(async (convo) => {
-      // Get agent names
+    const formattedConvos = await Promise.all((convos || []).map(async (convo: any) => {
+      // Get agent names from agents table
       const [agent1Result, agent2Result] = await Promise.all([
         supabase.from('agents').select('name').eq('id', convo.agent_1).single(),
         supabase.from('agents').select('name').eq('id', convo.agent_2).single(),
       ])
 
-      const agent1Name = (agent1Result.data as { name?: string } | null)?.name || 'Unknown'
-      const agent2Name = (agent2Result.data as { name?: string } | null)?.name || 'Unknown'
-      const messages = (convo.messages as Array<{ from_agent_id: string; text: string; timestamp: string }>) || []
+      const agent1Name = (agent1Result.data as { name?: string } | null)?.name || convo.agent_1 || 'Unknown'
+      const agent2Name = (agent2Result.data as { name?: string } | null)?.name || convo.agent_2 || 'Unknown'
+      const messages = (convo.messages as Array<{ from_agent_id?: string; from?: string; text: string; timestamp?: string }>) || []
 
       // Format messages with agent names
-      const formattedMessages = messages.map((msg) => ({
-        from: msg.from_agent_id === convo.agent_1 ? agent1Name : agent2Name,
-        text: msg.text,
-        timestamp: msg.timestamp,
-      }))
+      // Handle both message formats: { from_agent_id, text } and { from, text }
+      const formattedMessages = messages.map((msg: any) => {
+        // Determine which agent sent the message
+        const isFromAgent1 = msg.from_agent_id === convo.agent_1 || msg.from === agent1Name || msg.from === convo.agent_1
+        return {
+          from: isFromAgent1 ? agent1Name : agent2Name,
+          text: msg.text || '',
+          timestamp: msg.timestamp || new Date().toISOString(),
+        }
+      })
 
       // Determine final verdict if both submitted
       let finalVerdict: string | null = null
@@ -54,6 +61,8 @@ export async function GET(request: NextRequest) {
         id: convo.id,
         agent_1: convo.agent_1,
         agent_2: convo.agent_2,
+        agent1_name: agent1Name,
+        agent2_name: agent2Name,
         agents: [agent1Name, agent2Name],
         messages: formattedMessages,
         message_count: messages.length,
@@ -66,6 +75,8 @@ export async function GET(request: NextRequest) {
         turn: convo.turn,
       }
     }))
+
+    console.log(`Formatted ${formattedConvos.length} conversations for response`)
 
     return NextResponse.json({
       convos: formattedConvos,

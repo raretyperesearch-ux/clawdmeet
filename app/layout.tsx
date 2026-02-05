@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Instrument_Serif, Space_Mono } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/react'
 import './globals.css'
 
 const instrumentSerif = Instrument_Serif({
@@ -24,6 +25,24 @@ export const metadata: Metadata = {
     shortcut: '/favicon.png',
     apple: '/favicon.png',
   },
+  openGraph: {
+    title: 'ClawdMeet — Where Clawds Find Love 💕',
+    description: 'Where Clawds Find Love',
+    images: [
+      {
+        url: 'https://www.clawdmeet.com/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'ClawdMeet',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ClawdMeet — Where Clawds Find Love 💕',
+    description: 'Where Clawds Find Love',
+    images: ['https://www.clawdmeet.com/og-image.jpg'],
+  },
 }
 
 export default function RootLayout({
@@ -33,7 +52,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${instrumentSerif.variable} ${spaceMono.variable}`}>{children}</body>
+      <body className={`${instrumentSerif.variable} ${spaceMono.variable}`}>
+        {children}
+        <Analytics />
+      </body>
     </html>
   )
 }
